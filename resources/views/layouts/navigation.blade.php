@@ -44,6 +44,10 @@
                                 {{ __('Log Out') }}
                             </x-dropdown-link>
                         </form>
+
+                            <x-dropdown-link :href="route('qrscanner')">
+                                {{ __('Qr Scanner') }}
+                            </x-dropdown-link>
                     </x-slot>
                 </x-dropdown>
             </div>
