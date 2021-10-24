@@ -1,6 +1,6 @@
 # How to run the project
 - rename .env.example to .env
-- add db connection in .en
+- add db connection in .env
 ```
 composer install
 php artisan migrate 
