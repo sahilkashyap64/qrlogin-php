@@ -170,3 +170,10 @@ success:function(data) {
               }
 
 ```
+
+- QR test page in incognito mode
+![QR test](picofWS/1.png?raw=true "QR test page")
+- When QR scanned
+![When QR scanned successfully](picofWS/2.png?raw=true "When QR scanned successfully")
+- Things happening in the console
+![WS console](picofWS/3.png?raw=true "console")
