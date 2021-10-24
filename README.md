@@ -1,65 +1,172 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+# How to run the project
+- rename .env.example to .env
+- add db connection in .en
+```
+composer install
+php artisan migrate 
+php artisan serve
+```
+### Vist the link
+- register user and login
+- open QR scanner using http://baseurl/qrscanner
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+### Open incognito tab in browser
+- open http://baseurl/qrstest
+click on 'login with qr' button
+qr code comes up save the qr as image.
 
-## About Laravel
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- In your QR scanner tab
+import the QR image(for localhost only), it will be scanned.
+OR use the camera to scan(probably will work on prod)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-## Learning Laravel
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+# Show QR Login
+### Display QR code 
+Three APIs
+- Create QR code from backend (api/login/create/qrcode)
+1. Poll scan/qrcode api
+2. Poll web/login/entry/login 
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Routes
 
-## Laravel Sponsors
+### 1. Get QR code from backend
+```sh
+method: "POST"
+url: "api/login/create/qrcode"
+```
+on success response
+```js
+success: function(data) {
+        if (data.status == 1) {
+            var qrcodeimg = data.msg;
+            $('#key').val(data.key); //key key in DOM
+            //qrcodeimg looks like this: baseurl/sjjh222.png 
+                $('.qrcode-img').attr('src', qrcodeimg); //set img on DOM
+            var inter = setInterval(function() {
+                //hit QRscan api
+                is_sacn_qrcode(); //Poll For QR scan status
+            }, 3000);
+            $('#timing').val(inter);
+        }
+```
+### 2. Poll for scanned qr status
+```sh
+method: "POST"
+url: "api/login/scan/qrcode",
+data:{key:key}
+```
+on success response
+```js
+success: function(data) {
+    if (data.status == 1) {
+        // Scan code successfully   
+        // Cancel timing tasks
+        clearInterval($('#timing').val());
+        $('#timing').val('');
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+        var is_login = setInterval(function() {
+            //hit login api
+            is_loginfun(); //Poll For Login status
+        }, 3000);
+        $('#is_login').val(is_login);
 
-### Premium Partners
+    } else if (data.status == 2) {
+        $('.timeout,.mask').show();
+        // Cancel timing tasks 
+        clearInterval($('#timing').val());
+        $('#timing').val('');
+    }
+}
+```
+### 3. Poll for login qr status
+```sh
+method: "POST"
+url: "web/login/entry/login",
+data:{key:key}
+```
+on success response
+```js
+success: function(data) {
+    if (data.status == 1) {
+        var uid = data.jwt;
+        var user = data.user;
+        console.log("user", user);
+        //  var sign = data.sign;
+        // Cancel timed tasks and clear cookies  
+        clearInterval($('#is_login').val());
+        $('#is_login').val('');
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[CMS Max](https://www.cmsmax.com/)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+        console.log("login successfull", uid);
 
-## Contributing
+        $('.qrcode-img').attr('src', '');
+        alert("login successfull", uid);
+        $('#thelogindata').text(uid)
+        window.location.href = '/';
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+    } else if (data.status == 2) {
+        // Cancel timed tasks
+        clearInterval($('#is_login').val());
+        $('#is_login').val('');
+        alert(data.msg);
+    }
+}
+```
 
-## Code of Conduct
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# QR scanner App
+## Scanner to be accessed by Authenticated User
+Two APIs
+- Scan the QR code by qrreader,set the scanned text as api url
+1.  Attach user passcode with the scanned QR code
+2. Do login in the QRcode
+## Routes
+
+### 1. Send UserPasscode in header
+```sh
+method: "POST"
+url: "/api/login/mobile/scan/qrcode?key=xxx&type=1",
+headers: {'userpasscode': '$hashedid'}
+```
+
+on success response
+```js
+success:function(data) {
+              if (data.status==1 ){
+              var qrcodeloginurl = data.msg;
+<!-- qrcodeloginurl looks like this: /api/login/qrcodedoLogin?key=xxxx&type=scan&login=xxxx&sign=xxxx              -->
+
+                  //hit 2nd api using the url recieved in msg key
+                  qrcodedoLogin(qrcodeloginurl);
+              }else if(data.status==2){
+              //qr expired
+                  console.log("Error",data.msg)
+              }
+
+```
+### 2. qrcodedoLogin(qrcodeloginurl), qrcodeloginurl: came from the 1st api response
+```sh
+method: "POST"
+url: qrcodeloginurl,
+```
+
+on success response
+```js
+success:function(data) {
+              if (data.status==1 ){
+              var msg = data.msg;
+                 
+                  console.log(msg);
+                  //QR code login successfull
+              }else if(data.status==2){
+              //qr expired
+                  console.log("Error",data.msg)
+              }
+
+```
